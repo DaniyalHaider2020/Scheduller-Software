@@ -3,6 +3,18 @@ from .views import *
 
 urlpatterns = [
     path('', home, name='home'),
+    
+    ##NEW LINE
+    path('static/CSS/style.css', my_css_view, name='my_css'),
+    path('static/CSS/login.css', my_login_view, name='my_css'),
+    path('static/js/script.js', my_js_view, name='my_js'),
+    path('static/img/logo.jpg', my_img_view, name='my_img'),
+    path('accounts/logout/',userlogout ,name = 'logout'),
+    ##################################  GPT
+     #path('accounts/login/', login_view, name='login'),
+    path('generate_timetable/', generate_timetable, name='generate_timetable'),
+
+    ##
     path('timetableGeneration/', timetable, name='timetable'),
 
     path('instructorAdd/', instructorAdd, name='instructorAdd'),

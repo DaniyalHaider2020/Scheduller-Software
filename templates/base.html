@@ -11,6 +11,24 @@
 
 
 <!DOCTYPE html>
+<head>
+  <meta charset="utf-8">
+  <title>Timetable Scheduler</title>
+  <meta name="author" content="DSC AISSMSCOE">
+  <meta name="description" content="Timetable Scheduler">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
+    integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Sans+Pro&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Quicksand:400,500,700">
+  <link rel="stylesheet" type="text/css" href="{% static 'CSS/style.css' %}">
+  <script src="{% static 'js/script.js' %}"></script>
+</head>
+
 <html lang="en">
 
 <head>
@@ -54,9 +72,22 @@
           <li class="{% active request courseAdd %}"><a href="{{ courseAdd }}">Course</a></li>
           <li class="{% active request departmentAdd %}"><a href="{{ departmentAdd }}">Department</a></li>
           <li class="{% active request sectionAdd %}"><a href="{{ sectionAdd }}">Section</a></li>
+          <!--
           {% if user.is_authenticated %}
           <li><a href="{% url 'logout' %}"><i style="font-size:1.6rem" class="fa">&#xf08b;</i></a></li>
           {% endif %}
+ -->
+            {% if user.is_authenticated %}
+<form action="{% url 'login' %}" method="post">
+    {% csrf_token %}
+    <button type="submit" style="border: none; background-color: transparent; cursor: pointer;">
+        <i style="font-size: 1.6rem;" class="fa">&#xf08b;</i>
+    </button>
+</form>
+{% endif %} 
+
+      
+
         </ul>
       </div>
     </nav>
@@ -78,6 +109,16 @@
   <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"
     integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM"
     crossorigin="anonymous"></script>
+    <script type="text/javascript"
+    src="https://botstacks.sfo3.cdn.digitaloceanspaces.com/webassistant.js"></script>
+  <script type="text/javascript">
+    window.onload = function() {
+      initBotStackAssistant({
+        apiKey: "uvx4r5841nbye1qdghv6nuy6",
+        botId: "c32663ac-d07b-485f-af14-ee2f667b09af"
+      });
+    };
+  </script>  
 </body>
 
 </html>

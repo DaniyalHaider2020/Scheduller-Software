@@ -1,16 +1,83 @@
-from django.http.response import HttpResponse
+from django.http.response import HttpResponse, JsonResponse
+from django.http import HttpResponse
 from django.shortcuts import render, redirect
 from django.http import JsonResponse
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth import logout, login , authenticate
 from .models import *
 from .forms import *
 from collections import defaultdict
 import random
+import os
+from django.shortcuts import render
+
+import tempfile
+from django.core.files import File
+from openpyxl import Workbook
+from django.http import HttpResponse
+
+
+def home(request):
+    return render(request, 'index.html', {})
+
+def userlogout(request):
+    logout(request)
+    request.session.flush()
+    return redirect('login.html')
+
+def my_css_view(request):
+    # Read the CSS file content here
+    with open('./static/CSS/style.css', 'r') as f:
+        css_content = f.read()
+
+    response = HttpResponse(css_content, content_type='text/css')
+    return response
+
+def my_login_view(request):
+    # Read the js file content here
+    with open('./static/CSS/login.css', 'r') as f:
+        css_content = f.read()
+ ############################# GPT
+        
+# def login_view(request):
+#     if request.method == 'POST':
+#         username = request.POST.get('username')
+#         password = request.POST.get('password')
+#         user = authenticate(request, username=username, password=password)
+#         if user is not None:
+#             login(request, user)
+#             # Redirect to a success page
+#             return redirect('success_url')
+#         else:
+#             # Invalid login
+#             return render(request, 'registration/login.html', {'error': 'Invalid username or password'})
+#     else:
+#         # GET request, render the login form
+#         return render(request, 'registration/login.html')        
+
+#     response = HttpResponse(css_content, content_type='text/css')
+#     return response
+
+#################################3
+def my_js_view(request):
+    with open('./static/js/script.js', 'r') as f:
+        js_content = f.read()
+
+    response = HttpResponse(js_content, content_type='application/javascript')
+    return response
+
+def my_img_view(request):
+    # Read the img file content here
+    with open('./static/img/logo.jpg', 'r') as f:
+        img_content = f.read()
+    response = HttpResponse(img_content, content_type='image/jpeg')
+    return response
+
 
 POPULATION_SIZE = 30
 NUMB_OF_ELITE_SCHEDULES = 2
 TOURNAMENT_SELECTION_SIZE = 8
-MUTATION_RATE = 0.05
+MUTATION_RATE = 0.5
 VARS = {'generationNum': 0,
         'terminateGens': False}
 
@@ -92,7 +159,7 @@ class Class:
 
 class Schedule:
     def __init__(self):
-        self._data = data
+        self._data = Data()
         self._classes = []
         self._numberOfConflicts = 0
         self._fitness = -1
@@ -154,7 +221,7 @@ class Schedule:
             if classes[i].room.seating_capacity < int(classes[i].course.max_numb_students):
                 self._numberOfConflicts += 1
 
-            # print(classes[i].course.course_name, classes[i].meeting_time, classes[i].section, classes[i].room, classes[i].instructor)
+                #print(classes[i].course.course_name, classes[i].meeting_time, classes[i].section, classes[i].room, classes[i].instructor)
 
             for j in range(i + 1, len(classes)):
                 # Same course on same day
@@ -276,26 +343,114 @@ def timetable(request):
         schedule = population.getSchedules()[0]
         VARS['generationNum'] += 1
 
-        # for c in schedule.getClasses():
-        #     print(c.course.course_name, c.meeting_time)
+        for c in schedule.getClasses():
+            print(c.course.course_name, c.meeting_time)
         print(f'\n> Generation #{VARS["generationNum"]}, Fitness: {schedule.getFitness()}')
 
-    return render(
-        request, 'timetable.html', {
-            'schedule': schedule.getClasses(),
-            'sections': data.get_sections(),
-            'times': data.get_meetingTimes(),
-            'timeSlots': TIME_SLOTS,
-            'weekDays': DAYS_OF_WEEK
-        })
+    context = {
+        'schedule': schedule.getClasses(),
+        'sections': data.get_sections(),
+        'times': data.get_meetingTimes(),
+        'rooms': data.get_rooms(),
+        'timeSlots': TIME_SLOTS,
+        'weekDays': DAYS_OF_WEEK
+    }
 
+    wb = Workbook()
+    sheet = wb.active
+    sheet.title = 'Timetable'
+
+    # Add column labels
+    labels = ['Section', 'Department ID', 'Course Name', 'Classroom', 'Day', 'Meeting time']
+    for i, label in enumerate(labels, start=1):
+        sheet.cell(row=1, column=i, value=label)
+    # Write timetable data to the Excel file
+    for i, class_item in enumerate(schedule.getClasses(), start=2):
+        sheet.cell(row=i, column=1, value=class_item.section)
+        sheet.cell(row=i, column=2, value=class_item.department.id)
+        sheet.cell(row=i, column=3, value=class_item.course.course_name)
+        sheet.cell(row=i, column=4, value=class_item.room.r_number)
+        sheet.cell(row=i, column=5, value=class_item.meeting_time.day)
+        sheet.cell(row=i, column=6, value=class_item.meeting_time.time)
+
+    # Save the workbook to a temporary file
+    temp_file_path = os.path.join('static', 'timetable.xlsx')
+    wb.save(temp_file_path)
+
+    # Provide download link
+    download_link = f"/download/timetable.xlsx"
+
+    return render(request, 'timetable.html', context)
+
+@login_required
+def generate_timetable(request):
+    
+    # Your timetable generation logic here
+    global data
+    data = Data()
+    population = Population(POPULATION_SIZE)
+    VARS['generationNum'] = 0
+    VARS['terminateGens'] = False
+    population.getSchedules().sort(key=lambda x: x.getFitness(), reverse=True)
+    geneticAlgorithm = GeneticAlgorithm()
+    schedule = population.getSchedules()[0]
+
+    while (schedule.getFitness() != 1.0) and (VARS['generationNum'] < 100):
+        if VARS['terminateGens']:
+            return HttpResponse('')
+
+        population = geneticAlgorithm.evolve(population)
+        population.getSchedules().sort(key=lambda x: x.getFitness(), reverse=True)
+        schedule = population.getSchedules()[0]
+        VARS['generationNum'] += 1
+
+        for c in schedule.getClasses():
+            print(c.course.course_name, c.meeting_time)
+        print(f'\n> Generation #{VARS["generationNum"]}, Fitness: {schedule.getFitness()}')
+
+    context = {
+        'schedule': schedule.getClasses(),
+        'sections': data.get_sections(),
+        'times': data.get_meetingTimes(),
+        'rooms': data.get_rooms(),
+        'timeSlots': TIME_SLOTS,
+        'weekDays': DAYS_OF_WEEK
+    }
+
+    wb = Workbook()
+    sheet = wb.active
+    sheet.title = 'Timetable'
+
+    # Add column labels
+    labels = ['Section', 'Department ID', 'Course Name', 'Classroom', 'Day', 'Meeting time']
+    for i, label in enumerate(labels, start=1):
+        sheet.cell(row=1, column=i, value=label)
+    # Write timetable data to the Excel file
+    for i, class_item in enumerate(schedule.getClasses(), start=2):
+        sheet.cell(row=i, column=1, value=class_item.section)
+        sheet.cell(row=i, column=2, value=class_item.department.id)
+        sheet.cell(row=i, column=3, value=class_item.course.course_name)
+        sheet.cell(row=i, column=4, value=class_item.room.r_number)
+        sheet.cell(row=i, column=5, value=class_item.meeting_time.day)
+        sheet.cell(row=i, column=6, value=class_item.meeting_time.time)
+
+    # Save the workbook to a temporary file
+    temp_file_path = os.path.join('static', 'timetable.xlsx')
+    wb.save(temp_file_path)
+
+    # Open the temporary file and create a Django File object
+    with open(temp_file_path, 'rb') as file:
+        response = HttpResponse(file.read(), content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+        response['Content-Disposition'] = 'attachment; filename=timetable.xlsx'
+
+    # Delete the temporary file
+    os.remove(temp_file_path)
+
+    return response
 
 '''
 Page Views
 '''
-
-def home(request):
-    return render(request, 'index.html', {})
 
 
 @login_required
